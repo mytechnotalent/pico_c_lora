@@ -11,8 +11,9 @@ A professional embedded C application for the Raspberry Pi Pico that combines 4-
 <br>
 
 ## Wiring
-![image](https://github.com/mytechnotalent/LoRa/blob/main/diagrams/Debug-Probe-Wiring.png?raw=true)
-![image](https://github.com/mytechnotalent/LoRa/blob/main/diagrams/LoRa.png?raw=true)
+![image](https://github.com/mytechnotalent/pico_c_lora/blob/main/diagrams/Debug-Probe-Wiring.png?raw=true)
+![image](https://github.com/mytechnotalent/pico_c_lora/blob/main/diagrams/lora_transmitter.png?raw=true)
+![image](https://github.com/mytechnotalent/pico_c_lora/blob/main/diagrams/lora_receiver.png?raw=true)
 
 ## Features
 
