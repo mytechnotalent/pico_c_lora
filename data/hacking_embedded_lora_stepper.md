@@ -1,6 +1,6 @@
 ---
-title: "Hacking Embedded Stepper"
-subtitle: "Complete Reverse Engineering Guide for Raspberry Pi Pico Stepper Motor Control"
+title: "Hacking Embedded LoRa Stepper Motor Control"
+subtitle: "Complete Reverse Engineering Guide for Raspberry Pi Pico LoRa-Controlled Stepper Motors"
 author: "Kevin Thomas"
 date: \today
 geometry: margin=1in
@@ -14,7 +14,7 @@ header-includes:
   - \usepackage{float}
   - \pagestyle{fancy}
   - \fancyhf{}
-  - \rhead{Hacking Embedded Stepper}
+  - \rhead{Hacking Embedded LoRa}
   - \lhead{Kevin Thomas}
   - \cfoot{\thepage}
   - \definecolor{codegreen}{rgb}{0,0.6,0}
@@ -29,15 +29,15 @@ header-includes:
 \centering
 \vspace*{2cm}
 
-{\Huge\bfseries Hacking Embedded Stepper}
+{\Huge\bfseries Hacking Embedded LoRa}
 
 \vspace{0.5cm}
 
-{\Large Complete Reverse Engineering Guide for\\Raspberry Pi Pico Stepper Motor Control}
+{\Large Complete Reverse Engineering Guide for\\Raspberry Pi Pico LoRa-Controlled Stepper Motors}
 
 \vspace{2cm}
 
-\includegraphics[width=0.6\textwidth]{stepper.jpeg}
+\includegraphics[width=0.6\textwidth]{LoRa.jpeg}
 
 \vspace{2cm}
 
@@ -58,9 +58,11 @@ header-includes:
 
 # Executive Summary
 
-This comprehensive guide provides a complete reverse engineering analysis of an embedded stepper motor control system built for the Raspberry Pi Pico. The project demonstrates professional embedded C development practices, GPIO control, and multi-motor coordination using ULN2003 driver boards.
+This comprehensive guide provides a complete reverse engineering analysis of an embedded LoRa-controlled stepper motor system built for the Raspberry Pi Pico. The project demonstrates professional embedded C development practices, wireless LoRa communication, GPIO control, and multi-motor coordination using ULN2003 driver boards.
 
 **Key Features Analyzed:**
+- Dual-mode operation (transmitter/receiver)
+- RYLR998 LoRa wireless communication
 - 4-channel stepper motor control system
 - Real-time GPIO manipulation
 - Memory-efficient embedded C implementation
@@ -78,7 +80,7 @@ This comprehensive guide provides a complete reverse engineering analysis of an 
 
 ## Hardware Architecture
 
-The system controls four 28BYJ-48 stepper motors through ULN2003 driver boards, utilizing the Raspberry Pi Pico's ARM Cortex-M0+ processor. The design carefully avoids UART pins to maintain debugging capabilities while maximizing GPIO utilization.
+The system controls four 28BYJ-48 stepper motors through ULN2003 driver boards via LoRa wireless communication, utilizing the Raspberry Pi Pico's ARM Cortex-M0+ processor. The design carefully avoids UART pins to maintain debugging capabilities while maximizing GPIO utilization for both stepper control and LoRa communication.
 
 ### Power Management
 - **Logic Power**: 3.3V from Pico's internal regulator
@@ -91,13 +93,14 @@ The pin assignment strategy demonstrates professional embedded design:
 
 ## GPIO Pin Assignments
 
-| Component           | GPIO Pins      | Description        |
-| ------------------- | -------------- | ------------------ |
-| **Stepper Motor 1** | 2, 3, 6, 7     | IN1, IN2, IN3, IN4 |
-| **Stepper Motor 2** | 10, 11, 14, 15 | IN1, IN2, IN3, IN4 |
-| **Stepper Motor 3** | 18, 19, 20, 21 | IN1, IN2, IN3, IN4 |
-| **Stepper Motor 4** | 22, 26, 27, 28 | IN1, IN2, IN3, IN4 |
-| **Onboard LED**     | 25             | Built-in LED       |
+| Component              | GPIO Pins      | Description        |
+| ---------------------- | -------------- | ------------------ |
+| **LoRa Module**        | 4, 5           | UART1 TX, RX       |
+| **Stepper Motor 1**    | 2, 3, 6, 7     | IN1, IN2, IN3, IN4 |
+| **Stepper Motor 2**    | 10, 11, 14, 15 | IN1, IN2, IN3, IN4 |
+| **Stepper Motor 3**    | 18, 19, 20, 21 | IN1, IN2, IN3, IN4 |
+| **Stepper Motor 4**    | 22, 26, 27, 28 | IN1, IN2, IN3, IN4 |
+| **Onboard LED**        | 25             | Built-in LED       |
 
 ### Power Distribution
 ```
@@ -143,12 +146,12 @@ SRAM (264KB total):
 00000004 a CLZ32
 00000004 a MEMCPY
 00000004 a MEM_FUNC_COUNT
+00000005 a next_slot_number
 00000008 a CTZ32
 00000008 a MEMSET4
 0000000c a MEMCPY4
 0000000c a REVERSE32
 00000060 a DIV_UDIVIDEND
-00000064 a DIV_UDIVISOR
 ```
 
 
@@ -179,15 +182,15 @@ The ELF sections demonstrate efficient memory utilization:
 
 ```
 
-build/stepper.elf:	file format elf32-littlearm
+build/LoRa.elf:	file format elf32-littlearm
 
 Sections:
 Idx Name                Size     VMA      LMA      Type
   0                     00000000 00000000 00000000 
   1 .boot2              00000100 10000000 10000000 TEXT
-  2 .text               00004080 10000100 10000100 TEXT
-  3 .rodata             00000504 10004180 10004180 DATA
-  4 .binary_info        00000020 10004684 10004684 DATA
+  2 .text               000084a4 10000100 10000100 TEXT
+  3 .rodata             00001690 100085a8 100085a8 DATA
+  4 .binary_info        00000030 10009c38 10009c38 DATA
 ```
 
 
@@ -201,43 +204,43 @@ The following analysis highlights key assembly patterns and optimization techniq
 ```asm
 100002d4 <main>:
 100002d4: b510         	push	{r4, lr}
-100002d6: f003 fe07    	bl	0x10003ee8 <stdio_init_all> @ imm = #0x3c0e
-100002da: f000 f803    	bl	0x100002e4 <run>        @ imm = #0x6
+100002d6: f005 f843    	bl	0x10005360 <stdio_init_all> @ imm = #0x5086
+100002da: f000 fa1f    	bl	0x1000071c <run>        @ imm = #0x43e
 100002de: 2000         	movs	r0, #0x0
 100002e0: bd10         	pop	{r4, pc}
 100002e2: 46c0         	mov	r8, r8
 
-100002e4 <run>:
-100002e4: b5f0         	push	{r4, r5, r6, r7, lr}
-100002e6: 46de         	mov	lr, r11
-100002e8: 4657         	mov	r7, r10
-100002ea: 464e         	mov	r6, r9
-100002ec: 4645         	mov	r5, r8
-100002ee: b5e0         	push	{r5, r6, r7, lr}
-100002f0: 2019         	movs	r0, #0x19
-100002f2: b0a5         	sub	sp, #0x94
-100002f4: f000 fa1c    	bl	0x10000730 <gpio_init>  @ imm = #0x438
-100002f8: 23d0         	movs	r3, #0xd0
-100002fa: 2280         	movs	r2, #0x80
-100002fc: 061b         	lsls	r3, r3, #0x18
-100002fe: 0492         	lsls	r2, r2, #0x12
-10000300: 625a         	str	r2, [r3, #0x24]
-10000302: 2303         	movs	r3, #0x3
-10000304: ae08         	add	r6, sp, #0x20
-10000306: 2500         	movs	r5, #0x0
-10000308: 46b2         	mov	r10, r6
-1000030a: 469b         	mov	r11, r3
-1000030c: 4b38         	ldr	r3, [pc, #0xe0]         @ 0x100003f0 <run+0x10c>
-1000030e: 4c39         	ldr	r4, [pc, #0xe4]         @ 0x100003f4 <run+0x110>
-10000310: 9303         	str	r3, [sp, #0xc]
+100002e4 <send_lora_command>:
+100002e4: b510         	push	{r4, lr}
+100002e6: 0004         	movs	r4, r0
+100002e8: 480b         	ldr	r0, [pc, #0x2c]         @ 0x10000318 <send_lora_command+0x34>
+100002ea: 0021         	movs	r1, r4
+100002ec: f005 f90e    	bl	0x1000550c <stdio_printf> @ imm = #0x521c
+100002f0: 0020         	movs	r0, r4
+100002f2: f008 f895    	bl	0x10008420 <strlen>     @ imm = #0x812a
+100002f6: 2164         	movs	r1, #0x64
+100002f8: b2c3         	uxtb	r3, r0
+100002fa: 0022         	movs	r2, r4
+100002fc: 4807         	ldr	r0, [pc, #0x1c]         @ 0x1000031c <send_lora_command+0x38>
+100002fe: f000 fc2b    	bl	0x10000b58 <lora_send_message> @ imm = #0x856
+10000302: 1e01         	subs	r1, r0, #0x0
+10000304: d103         	bne	0x1000030e <send_lora_command+0x2a> @ imm = #0x6
+10000306: 4806         	ldr	r0, [pc, #0x18]         @ 0x10000320 <send_lora_command+0x3c>
+10000308: f005 f87c    	bl	0x10005404 <stdio_puts> @ imm = #0x50f8
+1000030c: bd10         	pop	{r4, pc}
+1000030e: 4805         	ldr	r0, [pc, #0x14]         @ 0x10000324 <send_lora_command+0x40>
+10000310: f005 f8fc    	bl	0x1000550c <stdio_printf> @ imm = #0x51f8
+10000314: e7fa         	b	0x1000030c <send_lora_command+0x28> @ imm = #-0xc
+10000316: 46c0         	mov	r8, r8
+10000318: a8 85 00 10  	.word	0x100085a8
 ```
 
 
-### Stepper Control Functions
-The stepper motor control demonstrates efficient bit manipulation and timing control:
+### LoRa Control Functions
+The LoRa-controlled stepper motor system demonstrates efficient bit manipulation and timing control:
 
 ```asm
-build/stepper.elf:	file format elf32-littlearm
+build/LoRa.elf:	file format elf32-littlearm
 
 Disassembly of section .boot2:
 
@@ -258,10 +261,6 @@ Disassembly of section .boot2:
 10000034: 02 22 90 42  	.word	0x42902202
 10000038: 14 d0 06 21  	.word	0x2106d014
 1000003c: 19 66 00 f0  	.word	0xf0006619
---
-1000032e: f000 f971    	bl	0x10000614 <stepper_init> @ imm = #0x2e2
-10000332: 3501         	adds	r5, #0x1
-10000334: 2800         	cmp	r0, #0x0
 ```
 
 
@@ -273,24 +272,24 @@ Analysis of embedded strings reveals debug information, function names, and syst
 ```
 2K! X`
 aXa.K
-FWFNFEF
-F8K9L
-CFPF
-&K'O
-FNFWFEF
-RFKF
- OF!
-fFZi
-NFGFwa
-NFwa
-NFwa
-LFgaZa
-fFZi
-NFGFwa
-NFwa
-NFwa
-LFgaZa
-NFGF
+'BKCH
+9LBaA
+nFhF
+"iF"H
+hF I
+3x ;^+
+ pjF
+`%h(
+FNFEFWF
+!EKFH
+CKDN
+d!8H
+5K6O
+F6K6L
+IF@F
+#JF0
+FNFEF
+[FBFIF
 ```
 
 
@@ -300,12 +299,12 @@ NFGF
 
 ### Potential Vulnerabilities
 1. **GPIO Manipulation**: Direct hardware control could be exploited
-2. **Timing Dependencies**: Race conditions in stepper sequencing
+2. **Timing Dependencies**: Race conditions in LoRa sequencing
 3. **Memory Layout**: Stack and heap organization analysis
 4. **External Dependencies**: Library function security review
 
 ### Hardening Recommendations
-1. Input validation for stepper parameters
+1. Input validation for LoRa parameters
 2. Bounds checking for GPIO operations
 3. Secure timing implementation
 4. Memory protection strategies
@@ -341,7 +340,7 @@ This reverse engineering analysis serves multiple educational purposes:
 ## Hands-On Exercises
 
 ### Exercise 1: Function Flow Analysis
-Trace the execution flow from `main()` through the stepper control functions.
+Trace the execution flow from `main()` through the LoRa control functions.
 
 ### Exercise 2: Memory Mapping
 Analyze the memory layout and identify optimization opportunities.
@@ -434,7 +433,7 @@ The reverse engineering process generates comprehensive analysis data:
 
 # Conclusion
 
-This comprehensive reverse engineering analysis demonstrates the power of systematic binary analysis in understanding embedded systems. The stepper motor control project serves as an excellent case study for:
+This comprehensive reverse engineering analysis demonstrates the power of systematic binary analysis in understanding embedded systems. The LoRa-controlled stepper motor project serves as an excellent case study for:
 
 - Professional embedded C development
 - ARM Cortex-M assembly analysis

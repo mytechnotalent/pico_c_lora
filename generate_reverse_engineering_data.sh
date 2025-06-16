@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Reverse Engineering Data Generation Script
-# This script generates comprehensive reverse engineering data for the LoRa motor project
+# This script generates comprehensive reverse engineering data for the LoRa stepper motor control project
+# Supports analysis of both receiver mode (stepper controller) and transmitter mode (remote control)
 
 # Colors for output
 RED='\033[0;31m'
@@ -18,7 +19,7 @@ ELF_FILE="${BUILD_DIR}/${PROJECT_NAME}.elf"
 BIN_FILE="${BUILD_DIR}/${PROJECT_NAME}.bin"
 
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}LoRa Motor Reverse Engineering Tool${NC}"
+echo -e "${BLUE}LoRa Stepper Motor Reverse Engineering Tool${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo
 
@@ -43,6 +44,16 @@ mkdir -p "$DATA_DIR"
 # Generate timestamp
 TIMESTAMP=$(date '+%Y-%m-%d_%H-%M-%S')
 echo -e "${GREEN}Generated at: $TIMESTAMP${NC}"
+
+# Detect build mode from strings
+echo -e "${YELLOW}Detecting build mode...${NC}"
+BUILD_MODE="Unknown"
+if strings "$ELF_FILE" | grep -q "TRANSMITTER MODE ACTIVE"; then
+    BUILD_MODE="Transmitter (Remote Control)"
+elif strings "$ELF_FILE" | grep -q "RECEIVER MODE ACTIVE"; then
+    BUILD_MODE="Receiver (Stepper Controller)"
+fi
+echo -e "${GREEN}Build mode detected: $BUILD_MODE${NC}"
 echo
 
 # Create analysis report header
@@ -52,6 +63,7 @@ cat >"$REPORT_FILE" <<EOF
 REVERSE ENGINEERING ANALYSIS REPORT
 ================================================================================
 Project: $PROJECT_NAME
+Build Mode: $BUILD_MODE
 Generated: $TIMESTAMP
 ELF File: $ELF_FILE
 Binary File: $BIN_FILE
@@ -213,13 +225,13 @@ echo -e "${YELLOW}Generating PDF report...${NC}"
 # Check if pandoc is available
 if command -v pandoc >/dev/null 2>&1; then
     # Create comprehensive markdown document for PDF generation
-    PDF_MD="${DATA_DIR}/hacking_embedded_LoRa.md"
+    PDF_MD="${DATA_DIR}/hacking_embedded_lora_stepper.md"
     PDF_FILE="Hacking_Embedded_LoRa.pdf"
 
     cat >"$PDF_MD" <<'PDFEOF'
 ---
-title: "Hacking Embedded LoRa"
-subtitle: "Complete Reverse Engineering Guide for Raspberry Pi Pico LoRa Motor Control"
+title: "Hacking Embedded LoRa Stepper Motor Control"
+subtitle: "Complete Reverse Engineering Guide for Raspberry Pi Pico LoRa-Controlled Stepper Motors"
 author: "Kevin Thomas"
 date: \today
 geometry: margin=1in
@@ -252,7 +264,7 @@ header-includes:
 
 \vspace{0.5cm}
 
-{\Large Complete Reverse Engineering Guide for\\Raspberry Pi Pico LoRa Motor Control}
+{\Large Complete Reverse Engineering Guide for\\Raspberry Pi Pico LoRa-Controlled Stepper Motors}
 
 \vspace{2cm}
 
@@ -277,10 +289,12 @@ header-includes:
 
 # Executive Summary
 
-This comprehensive guide provides a complete reverse engineering analysis of an embedded LoRa motor control system built for the Raspberry Pi Pico. The project demonstrates professional embedded C development practices, GPIO control, and multi-motor coordination using ULN2003 driver boards.
+This comprehensive guide provides a complete reverse engineering analysis of an embedded LoRa-controlled stepper motor system built for the Raspberry Pi Pico. The project demonstrates professional embedded C development practices, wireless LoRa communication, GPIO control, and multi-motor coordination using ULN2003 driver boards.
 
 **Key Features Analyzed:**
-- 4-channel LoRa motor control system
+- Dual-mode operation (transmitter/receiver)
+- RYLR998 LoRa wireless communication
+- 4-channel stepper motor control system
 - Real-time GPIO manipulation
 - Memory-efficient embedded C implementation
 - Professional modular code architecture
@@ -297,7 +311,7 @@ This comprehensive guide provides a complete reverse engineering analysis of an 
 
 ## Hardware Architecture
 
-The system controls four 28BYJ-48 LoRa motors through ULN2003 driver boards, utilizing the Raspberry Pi Pico's ARM Cortex-M0+ processor. The design carefully avoids UART pins to maintain debugging capabilities while maximizing GPIO utilization.
+The system controls four 28BYJ-48 stepper motors through ULN2003 driver boards via LoRa wireless communication, utilizing the Raspberry Pi Pico's ARM Cortex-M0+ processor. The design carefully avoids UART pins to maintain debugging capabilities while maximizing GPIO utilization for both stepper control and LoRa communication.
 
 ### Power Management
 - **Logic Power**: 3.3V from Pico's internal regulator
@@ -310,13 +324,14 @@ The pin assignment strategy demonstrates professional embedded design:
 
 ## GPIO Pin Assignments
 
-| Component           | GPIO Pins      | Description        |
-| ------------------- | -------------- | ------------------ |
-| **LoRa Motor 1** | 2, 3, 6, 7     | IN1, IN2, IN3, IN4 |
-| **LoRa Motor 2** | 10, 11, 14, 15 | IN1, IN2, IN3, IN4 |
-| **LoRa Motor 3** | 18, 19, 20, 21 | IN1, IN2, IN3, IN4 |
-| **LoRa Motor 4** | 22, 26, 27, 28 | IN1, IN2, IN3, IN4 |
-| **Onboard LED**     | 25             | Built-in LED       |
+| Component              | GPIO Pins      | Description        |
+| ---------------------- | -------------- | ------------------ |
+| **LoRa Module**        | 4, 5           | UART1 TX, RX       |
+| **Stepper Motor 1**    | 2, 3, 6, 7     | IN1, IN2, IN3, IN4 |
+| **Stepper Motor 2**    | 10, 11, 14, 15 | IN1, IN2, IN3, IN4 |
+| **Stepper Motor 3**    | 18, 19, 20, 21 | IN1, IN2, IN3, IN4 |
+| **Stepper Motor 4**    | 22, 26, 27, 28 | IN1, IN2, IN3, IN4 |
+| **Onboard LED**        | 25             | Built-in LED       |
 
 ### Power Distribution
 ```
@@ -397,7 +412,7 @@ PDFEOF
     cat >>"$PDF_MD" <<'PDFEOF'
 
 ### LoRa Control Functions
-The LoRa motor control demonstrates efficient bit manipulation and timing control:
+The LoRa-controlled stepper motor system demonstrates efficient bit manipulation and timing control:
 
 PDFEOF
 
@@ -475,7 +490,7 @@ Trace the execution flow from `main()` through the LoRa control functions.
 Analyze the memory layout and identify optimization opportunities.
 
 ### Exercise 3: Timing Analysis
-Examine the LoRa motor timing sequences and calculate rotation speeds.
+Examine the stepper motor timing sequences and calculate rotation speeds.
 
 ### Exercise 4: Security Assessment
 Identify potential attack vectors and propose mitigation strategies.
@@ -545,8 +560,8 @@ The reverse engineering process generates comprehensive analysis data:
 - **GPIO**: 26 multi-function pins
 - **Interfaces**: UART, SPI, I2C, PWM
 
-### 28BYJ-48 LoRa Motors
-- **Type**: Unipolar LoRa motor
+### 28BYJ-48 Stepper Motors
+- **Type**: Unipolar stepper motor
 - **Voltage**: 5V DC
 - **Current**: 160mA
 - **Step Angle**: 5.625° (64 steps/revolution)
@@ -562,7 +577,7 @@ The reverse engineering process generates comprehensive analysis data:
 
 # Conclusion
 
-This comprehensive reverse engineering analysis demonstrates the power of systematic binary analysis in understanding embedded systems. The LoRa motor control project serves as an excellent case study for:
+This comprehensive reverse engineering analysis demonstrates the power of systematic binary analysis in understanding embedded systems. The LoRa-controlled stepper motor project serves as an excellent case study for:
 
 - Professional embedded C development
 - ARM Cortex-M assembly analysis
@@ -588,7 +603,7 @@ PDFEOF
         echo -e "${GREEN}Generating PDF with cover image...${NC}"
 
         cd "${DATA_DIR}"
-        pandoc "hacking_embedded_LoRa.md" -o "../$PDF_FILE" \
+        pandoc "hacking_embedded_lora_stepper.md" -o "../$PDF_FILE" \
             --pdf-engine=xelatex \
             --toc \
             --number-sections
@@ -601,7 +616,7 @@ PDFEOF
             echo -e "${YELLOW}⚠ PDF generation failed, trying alternative method...${NC}"
             # Try without XeLaTeX
             cd "${DATA_DIR}"
-            pandoc "hacking_embedded_LoRa.md" -o "../$PDF_FILE" --toc --number-sections
+            pandoc "hacking_embedded_lora_stepper.md" -o "../$PDF_FILE" --toc --number-sections
             cd ..
             if [ -f "$PDF_FILE" ]; then
                 echo -e "${GREEN}✓ PDF generated successfully: $PDF_FILE${NC}"
@@ -613,7 +628,7 @@ PDFEOF
         echo -e "${YELLOW}⚠ LoRa.jpeg not found, generating PDF without cover image${NC}"
 
         cd "${DATA_DIR}"
-        pandoc "hacking_embedded_LoRa.md" -o "../$PDF_FILE" --toc --number-sections
+        pandoc "hacking_embedded_lora_stepper.md" -o "../$PDF_FILE" --toc --number-sections
         cd ..
         if [ -f "$PDF_FILE" ]; then
             echo -e "${GREEN}✓ PDF generated successfully: $PDF_FILE${NC}"
