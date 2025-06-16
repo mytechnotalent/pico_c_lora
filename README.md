@@ -1,6 +1,6 @@
 ![image](https://github.com/mytechnotalent/pico_c_lora/blob/main/LoRa.jpeg?raw=true)
 
-# Raspberry Pi Pico LoRa Motor Control
+# Pico C LoRa
 
 A professional embedded C application for the Raspberry Pi Pico that combines 4-channel LoRa motor control with RYLR998 LoRa wireless communication. The project supports both receiver (LoRa controller) and transmitter (remote control) modes in a unified codebase, enabling wireless LoRa motor control over long distances.
 
