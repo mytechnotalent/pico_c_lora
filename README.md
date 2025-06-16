@@ -437,7 +437,7 @@ make
 ### Documentation
 - **[LORA_WIRING.md](LORA_WIRING.md)**: LoRa module wiring and configuration
 - **[LORA_REMOTE_CONTROL.md](LORA_REMOTE_CONTROL.md)**: Complete setup and usage guide
-- **[LoRa_WIRING.md](LoRa_WIRING.md)**: LoRa motor wiring diagrams
+- **[LORA_WIRING.md](LoRa_WIRING.md)**: LoRa motor wiring diagrams
 
 ## License
 
